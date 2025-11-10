@@ -8,11 +8,12 @@ import LoadingSpinner from './components/LoadingSpinner';
 import ProductCarousel from './components/ProductCarousel';
 import BlogSection from './components/BlogSection';
 import { apiService } from './services/apiService';
-import { Deal, Filters, SortOption } from './types';
-import { CATEGORIES, BLOG_POSTS } from './constants';
+import { Deal, Filters, SortOption, BlogPost } from './types';
+import { CATEGORIES } from './constants';
 
 const App: React.FC = () => {
     const [deals, setDeals] = useState<Deal[]>([]);
+    const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState<string>('');
@@ -20,25 +21,29 @@ const App: React.FC = () => {
     const [isFilterSidebarOpen, setIsFilterSidebarOpen] = useState(false);
     
     const [filters, setFilters] = useState<Filters>({
-        category: 'Creams', // Default to a category
+        category: '',
         brands: [],
         retailers: [],
     });
 
     useEffect(() => {
-        const fetchDeals = async () => {
+        const fetchData = async () => {
             try {
                 setLoading(true);
-                const fetchedDeals = await apiService.getDeals();
+                const [fetchedDeals, fetchedPosts] = await Promise.all([
+                    apiService.getDeals(),
+                    apiService.getBlogPosts()
+                ]);
                 setDeals(fetchedDeals);
+                setBlogPosts(fetchedPosts);
             } catch (err) {
-                setError('Failed to fetch deals. Please try again later.');
+                setError('Failed to fetch data. Please try again later.');
                 console.error(err);
             } finally {
                 setLoading(false);
             }
         };
-        fetchDeals();
+        fetchData();
     }, []);
 
     const allBrands = useMemo(() => {
@@ -63,19 +68,15 @@ const App: React.FC = () => {
 
     const filteredAndSortedDeals = useMemo(() => {
         let filtered = deals.filter(deal => {
-            // Category filter
             if (filters.category && deal.category.toLowerCase() !== filters.category.toLowerCase()) {
                 return false;
             }
-            // Brand filter
             if (filters.brands.length > 0 && (!deal.brand || !filters.brands.includes(deal.brand))) {
                 return false;
             }
-            // Retailer filter
             if (filters.retailers.length > 0 && (!deal.retailer || !filters.retailers.includes(deal.retailer))) {
                 return false;
             }
-            // Search term filter
             const lowerSearchTerm = searchTerm.toLowerCase();
             if (lowerSearchTerm && 
                 !deal.productName.toLowerCase().includes(lowerSearchTerm) &&
@@ -87,7 +88,6 @@ const App: React.FC = () => {
             return true;
         });
 
-        // Sorting
         switch (sortOption) {
             case 'discount':
                 filtered.sort((a, b) => b.discountPercentage - a.discountPercentage);
@@ -128,7 +128,7 @@ const App: React.FC = () => {
     }
 
     return (
-        <div className="bg-gray-50 min-h-screen">
+        <div className="bg-white min-h-screen">
             <Header categories={CATEGORIES} onCategoryClick={handleCategoryClick} />
             
             <main>
@@ -146,7 +146,6 @@ const App: React.FC = () => {
                              <FilterSidebar 
                                  filters={filters}
                                  setFilters={setFilters}
-                                 categories={CATEGORIES}
                                  brands={allBrands}
                                  retailers={allRetailers}
                                  isOpen={isFilterSidebarOpen}
@@ -155,6 +154,7 @@ const App: React.FC = () => {
 
                              <div className="flex-1">
                                  <div className="flex justify-between items-center mb-6">
+                                    {/* FIX: Changed static heading to be dynamic based on the selected category. */}
                                     <h2 className="text-3xl font-bold text-gray-800">
                                        {filters.category || 'All'} Deals
                                     </h2>
@@ -190,16 +190,16 @@ const App: React.FC = () => {
                                     </div>
                                  </div>
                                  
-                                <p className="text-gray-600 mb-6">
+                                {filteredAndSortedDeals.length > 0 && <p className="text-gray-600 mb-6">
                                   Showing {filteredAndSortedDeals.length} deals.
-                                </p>
+                                </p>}
 
                                 <DealGrid deals={filteredAndSortedDeals} />
                              </div>
                          </div>
                     </div>
                     
-                    <BlogSection posts={BLOG_POSTS} />
+                    <BlogSection posts={blogPosts} />
                 </div>
 
             </main>
