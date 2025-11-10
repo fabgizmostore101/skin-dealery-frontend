@@ -102,7 +102,7 @@ const App: React.FC = () => {
                 break;
         }
 
-        return filtered;
+        return filtered.slice(0, 30);
     }, [deals, filters, searchTerm, sortOption]);
 
     const handleCategoryClick = (category: string) => {
@@ -154,9 +154,8 @@ const App: React.FC = () => {
 
                              <div className="flex-1">
                                  <div className="flex justify-between items-center mb-6">
-                                    {/* FIX: Changed static heading to be dynamic based on the selected category. */}
                                     <h2 className="text-3xl font-bold text-gray-800">
-                                       {filters.category || 'All'} Deals
+                                       Featured Deals
                                     </h2>
                                      
                                     <div className="flex items-center gap-4">
@@ -208,5 +207,3 @@ const App: React.FC = () => {
         </div>
     );
 };
-
-export default App;
