@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import Header from './components/Header';
 import Hero from './components/Hero';
 import FilterSidebar from './components/FilterSidebar';
@@ -7,15 +7,12 @@ import Footer from './components/Footer';
 import LoadingSpinner from './components/LoadingSpinner';
 import ProductCarousel from './components/ProductCarousel';
 import BlogSection from './components/BlogSection';
-import { apiService } from './services/apiService';
 import { Deal, Filters, SortOption, BlogPost } from './types';
-import { CATEGORIES } from './constants';
+import { CATEGORIES, DEALS, BLOG_POSTS } from './constants';
 
 const App: React.FC = () => {
-    const [deals, setDeals] = useState<Deal[]>([]);
-    const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [error, setError] = useState<string | null>(null);
+    const [deals] = useState<Deal[]>(DEALS);
+    const [blogPosts] = useState<BlogPost[]>(BLOG_POSTS);
     const [searchTerm, setSearchTerm] = useState<string>('');
     const [sortOption, setSortOption] = useState<SortOption>('discount');
     const [isFilterSidebarOpen, setIsFilterSidebarOpen] = useState(false);
@@ -25,26 +22,6 @@ const App: React.FC = () => {
         brands: [],
         retailers: [],
     });
-
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                setLoading(true);
-                const [fetchedDeals, fetchedPosts] = await Promise.all([
-                    apiService.getDeals(),
-                    apiService.getBlogPosts()
-                ]);
-                setDeals(fetchedDeals);
-                setBlogPosts(fetchedPosts);
-            } catch (err) {
-                setError('Failed to fetch data. Please try again later.');
-                console.error(err);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchData();
-    }, []);
 
     const allBrands = useMemo(() => {
         const brandsSet = new Set<string>();
@@ -80,8 +57,7 @@ const App: React.FC = () => {
             const lowerSearchTerm = searchTerm.toLowerCase();
             if (lowerSearchTerm && 
                 !deal.productName.toLowerCase().includes(lowerSearchTerm) &&
-                !(deal.brand && deal.brand.toLowerCase().includes(lowerSearchTerm)) &&
-                !deal.description.toLowerCase().includes(lowerSearchTerm)
+                !(deal.brand && deal.brand.toLowerCase().includes(lowerSearchTerm))
             ) {
                 return false;
             }
@@ -102,11 +78,15 @@ const App: React.FC = () => {
                 break;
         }
 
-        return filtered.slice(0, 30);
+        return filtered;
     }, [deals, filters, searchTerm, sortOption]);
+    
+    const displayedDeals = useMemo(() => {
+      return filteredAndSortedDeals.slice(0, 30);
+    }, [filteredAndSortedDeals]);
 
     const handleCategoryClick = (category: string) => {
-        setFilters(prev => ({ ...prev, category, brands: [], retailers: [] }));
+        setFilters(prev => ({ ...prev, category: prev.category === category ? '' : category, brands: [], retailers: [] }));
         setSearchTerm('');
     };
 
@@ -115,17 +95,9 @@ const App: React.FC = () => {
         setSearchTerm(brand);
     };
     
-    const featuredDeals = useMemo(() => {
-        return [...deals].sort((a, b) => b.discountPercentage - a.discountPercentage).slice(0, 10);
+    const featuredDealsForCarousel = useMemo(() => {
+        return [...deals].sort((a, b) => b.discountPercentage - a.discountPercentage).slice(0, 15);
     }, [deals]);
-
-    if (loading) {
-        return <LoadingSpinner />;
-    }
-
-    if (error) {
-        return <div className="text-center py-10 text-red-500">{error}</div>;
-    }
 
     return (
         <div className="bg-white min-h-screen">
@@ -139,13 +111,14 @@ const App: React.FC = () => {
                 />
 
                 <div className="py-12 space-y-16">
-                    <ProductCarousel deals={featuredDeals} />
+                    <ProductCarousel deals={featuredDealsForCarousel} />
 
                     <div className="container mx-auto px-4">
                          <div className="flex flex-col lg:flex-row gap-8">
                              <FilterSidebar 
                                  filters={filters}
                                  setFilters={setFilters}
+                                 categories={CATEGORIES}
                                  brands={allBrands}
                                  retailers={allRetailers}
                                  isOpen={isFilterSidebarOpen}
@@ -189,11 +162,11 @@ const App: React.FC = () => {
                                     </div>
                                  </div>
                                  
-                                {filteredAndSortedDeals.length > 0 && <p className="text-gray-600 mb-6">
-                                  Showing {filteredAndSortedDeals.length} deals.
-                                </p>}
+                                <p className="text-gray-600 mb-6">
+                                  Showing {displayedDeals.length} of {filteredAndSortedDeals.length} deals.
+                                </p>
 
-                                <DealGrid deals={filteredAndSortedDeals} />
+                                <DealGrid deals={displayedDeals} />
                              </div>
                          </div>
                     </div>
@@ -207,3 +180,5 @@ const App: React.FC = () => {
         </div>
     );
 };
+
+export default App;
