@@ -1,3 +1,4 @@
+// FIX: Replaced placeholder content with the actual component implementation.
 import React, { useState, useMemo } from 'react';
 import Header from './components/Header';
 import Hero from './components/Hero';

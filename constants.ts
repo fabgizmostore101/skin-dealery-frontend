@@ -1,3 +1,4 @@
+// FIX: Replaced placeholder content with the actual constant definitions.
 import { Deal, BlogPost } from './types';
 
 export const CATEGORIES: string[] = ['Creams', 'Cleansers', 'Serums', 'Sun Protection', 'Exfoliators'];
